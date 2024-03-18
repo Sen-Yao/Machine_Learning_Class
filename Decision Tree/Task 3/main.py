@@ -7,6 +7,23 @@ import matplotlib.pyplot as plt
 import time
 import pickle
 
+def find_best_ccp_alpha(X, y):
+    clf = DecisionTreeClassifier(random_state=42)
+    path = clf.cost_complexity_pruning_path(X, y)
+    ccp_alphas, impurities = path.ccp_alphas, path.impurities
+
+    scores = []
+    for ccp_alpha in ccp_alphas:
+        clf = DecisionTreeClassifier(random_state=42, ccp_alpha=ccp_alpha)
+        score = cross_val_score(clf, X, y, cv=5)
+        scores.append(np.mean(score))
+        print(f"ccp_alpha: {ccp_alpha:.5f}, average CV score: {np.mean(score):.5f}")
+
+    # 找到最佳ccp_alpha值
+    best_ccp_alpha = ccp_alphas[np.argmax(scores)]
+    print(f"Best ccp_alpha: {best_ccp_alpha}")
+
+    return best_ccp_alpha
 
 def one_hot(path, vector_size=10000):
     vectors = []
@@ -40,25 +57,28 @@ def preprocess(data_path, **kwargs):
 def train(train_vectors, valid=False, max_depth=30):
     print('开始训练，当前最大深度', max_depth)
     start_time = time.time()
+    acc = None  # 为了在函数最后能返回acc，确保acc被定义
+
+    X = train_vectors.iloc[:, :train_vectors.shape[1] - 1]
+    y = train_vectors.iloc[:, train_vectors.shape[1] - 1]
+
     if valid:
-        X = train_vectors.iloc[:, :train_vectors.shape[1] - 1]
-        y = train_vectors.iloc[:, train_vectors.shape[1] - 1]
         x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-        clf = DecisionTreeClassifier(max_depth=max_depth)
+        best_ccp_alpha = find_best_ccp_alpha(x_train, y_train)  # 寻找最佳ccp_alpha值
+
+        clf = DecisionTreeClassifier(max_depth=max_depth, ccp_alpha=best_ccp_alpha, random_state=42)
         clf.fit(x_train, y_train)
         y_pred = clf.predict(x_test)
         acc = accuracy_score(y_test, y_pred)
         print('正确率为', acc, '%')
     else:
-        x_train = train_vectors.iloc[:, :train_vectors.shape[1] - 1]
-        y_train = train_vectors.iloc[:, train_vectors.shape[1] - 1]
+        clf = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
+        clf.fit(X, y)
 
-        clf = DecisionTreeClassifier(random_state=42)
-        # 训练模型
-        clf.fit(x_train, y_train)
     end_time = time.time() - start_time
     print('训练耗时:', end_time, 's')
     return clf, acc
+
 
 
 def plot(clf):
@@ -71,8 +91,8 @@ def plot(clf):
 
 def main():
     train_data = preprocess('train_data.txt', label_path='train_labels.txt')
-    grid_search(train_data)
-    # train_data = preprocess('test_data.txt')
+    train(train_data, True)
+    # grid_search(train_data)
     # plot(clf)
 
 
