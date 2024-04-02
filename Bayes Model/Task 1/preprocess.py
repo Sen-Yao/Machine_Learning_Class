@@ -17,7 +17,6 @@ def find_mail_files(path):
     # 遍历当前目录下的所有文件和子目录
     for root, dirs, files in os.walk(path):
         for file in files:
-            # 检查文件扩展名是否为'.bmp'
             if file.endswith('.txt'):
                 # 构建完整的文件路径并添加到列表中
                 mail_paths.append(os.path.join(root, file))
@@ -77,6 +76,4 @@ def preprocess():
         ham_vectors.append(bagOfWords2VecMN(vocab_list, textParse(ham_string)))
     for spam_string in spam_strings:
         spam_vectors.append(bagOfWords2VecMN(vocab_list, textParse(spam_string)))
-    ham_vectors = pd.DataFrame(ham_vectors)
-    spam_vectors = pd.DataFrame(spam_vectors)
     return ham_vectors, spam_vectors
