@@ -129,6 +129,7 @@ def TextFeatures(train_data_list, test_data_list, feature_words):
     test_feature_list = [text_features(text, feature_words) for text in test_data_list]
     return train_feature_list, test_feature_list
 
+
 def TextClassifier(train_feature_list, test_feature_list, train_class_list, test_class_list):
     """
     函数说明:分类器
@@ -148,17 +149,20 @@ def TextClassifier(train_feature_list, test_feature_list, train_class_list, test
 
 
 if __name__ == '__main__':
-    # 文本预处理
+    total_accuracy = 0
     folder_path = './Database/SogouC/Sample'
-    all_words_list, train_data_list, test_data_list, train_class_list, test_class_list = TextProcessing(folder_path, test_size=0.2)
-
     # 生成stopwords_set
     stopwords_file = 'stopwords_cn.txt'
     stopwords_set = MakeWordsSet(stopwords_file)
-
-    # 文本特征提取和分类
     deleteN = 450
-    feature_words = words_dict(all_words_list, deleteN, stopwords_set)
-    train_feature_list, test_feature_list = TextFeatures(train_data_list, test_data_list, feature_words)
-    test_accuracy = TextClassifier(train_feature_list, test_feature_list, train_class_list, test_class_list)
-    print('在测试集上的正确率为', 100 * test_accuracy, '%')
+    for epoch in range(100):
+        # 文本预处理
+        all_words_list, train_data_list, test_data_list, train_class_list, test_class_list = TextProcessing(folder_path, test_size=0.2)
+
+        # 文本特征提取和分类
+        feature_words = words_dict(all_words_list, deleteN, stopwords_set)
+        train_feature_list, test_feature_list = TextFeatures(train_data_list, test_data_list, feature_words)
+        test_accuracy = TextClassifier(train_feature_list, test_feature_list, train_class_list, test_class_list)
+        print('第', epoch + 1, '次正确率为', 100 * test_accuracy, '%')
+        total_accuracy += test_accuracy
+    print('平均正确率为', total_accuracy)
