@@ -61,8 +61,8 @@ def prepare_loaders(train_texts, train_labels):
     train_data, val_data, train_labels, val_labels = train_test_split(train_tensor, train_labels_tensor,
                                                                       test_size=0.2, random_state=42)
 
-    train_dataset = TensorDataset(train_data, train_labels)
-    val_dataset = TensorDataset(val_data, val_labels)
+    train_dataset = TensorDataset(train_data.cuda(), train_labels.cuda())  # 放置在CUDA设备上
+    val_dataset = TensorDataset(val_data.cuda(), val_labels.cuda())  # 放置在CUDA设备上
 
     train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
@@ -75,6 +75,7 @@ def train(input_size, train_loader, val_loader, epochs):
     hidden_size2 = 64
     output_size = 20
     model = MLP(input_size, hidden_size1, hidden_size2, output_size)
+    model.cuda()
 
     # 定义损失函数和优化器
     criterion = nn.CrossEntropyLoss()
@@ -84,6 +85,7 @@ def train(input_size, train_loader, val_loader, epochs):
         model.train()
         running_loss = 0.0
         for inputs, labels in train_loader:
+            inputs, labels = inputs.cuda(), labels.cuda()
             optimizer.zero_grad()
             outputs = model(inputs)
             loss = criterion(outputs, labels)
@@ -98,6 +100,7 @@ def train(input_size, train_loader, val_loader, epochs):
         total = 0
         with torch.no_grad():
             for inputs, labels in val_loader:
+                inputs, labels = inputs.cuda(), labels.cuda()
                 outputs = model(inputs)
                 loss = criterion(outputs, labels)
                 val_loss += loss.item()
@@ -129,6 +132,8 @@ def predict_and_save(model, test_texts, vectorizer):
 
 
 def main():
+    print(torch.cuda.is_available())
+    print(torch.__version__)
     train_texts, train_labels, test_texts = read_file()
     train_loader, val_loader, vectorizer = prepare_loaders(train_texts, train_labels)
     model = train(MAX_FEATURES, train_loader, val_loader, 50)
@@ -137,3 +142,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

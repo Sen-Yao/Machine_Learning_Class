@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
-import re
-import pickle
+from tqdm import tqdm
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import svm
 from sklearn.metrics import accuracy_score, f1_score
@@ -52,6 +51,6 @@ print(f'Train Set: Acc={train_acc:.4f}, F1={train_f1:.4f}')
 # 计算测试集预测结果并保存
 test_pred = clf.predict(test_feature)
 with open('test_pred.txt', 'w') as f:
-    for label in test_pred:
+    for label in tqdm(test_pred):
         f.write(str(label) + '\n')
 f.close()
