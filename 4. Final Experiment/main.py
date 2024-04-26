@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import svm
 from sklearn.metrics import accuracy_score, f1_score
@@ -34,6 +35,9 @@ test_arg2_feature = test_arg2_vector.toarray()
 train_feature = np.concatenate((train_arg1_feature, train_arg2_feature), axis=1)
 test_feature = np.concatenate((test_arg1_feature, test_arg2_feature), axis=1)
 
+# 划分训练集和验证集
+train_feature, val_feature, train_label, val_label = train_test_split(train_feature, train_label, test_size=0.2, random_state=42)
+
 print('Start training')
 
 # SVM分类
@@ -42,15 +46,14 @@ clf.fit(train_feature, train_label)
 
 print('Start predicting')
 
-# 计算训练集上的Acc和F1
-train_pred = clf.predict(train_feature)
-train_acc = accuracy_score(train_label, train_pred)
-train_f1 = f1_score(train_label, train_pred, average='macro')
-print(f'Train Set: Acc={train_acc:.4f}, F1={train_f1:.4f}')
+# 计算验证集上的Acc和F1
+val_pred = clf.predict(val_feature)
+val_acc = accuracy_score(val_label, val_pred)
+val_f1 = f1_score(val_label, val_pred, average='macro')
+print(f'Validation Set: Acc={val_acc:.4f}, F1={val_f1:.4f}')
 
 # 计算测试集预测结果并保存
 test_pred = clf.predict(test_feature)
 with open('test_pred.txt', 'w') as f:
     for label in tqdm(test_pred):
         f.write(str(label) + '\n')
-f.close()
