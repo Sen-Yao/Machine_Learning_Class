@@ -8,7 +8,7 @@ from sklearn.metrics import f1_score
 
 
 # 训练模型
-def train_epoch(loader, model, criterion, optimizer, device):
+def LSTM_train_epoch(loader, model, criterion, optimizer, device):
     model.train()
     total_loss, total_correct, total_samples = 0, 0, 0
     all_preds, all_labels = [], []
@@ -34,7 +34,7 @@ def train_epoch(loader, model, criterion, optimizer, device):
     return total_loss / total_samples, total_correct / total_samples, train_f1
 
 
-def validate_epoch(loader, model, criterion, device):
+def LSTM_validate_epoch(loader, model, criterion, device):
     model.eval()
     total_loss, total_correct, total_samples = 0, 0, 0
     all_preds, all_labels = [], []
@@ -68,12 +68,12 @@ class DualLSTM_MLP(nn.Module):
         self.lstm1 = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
         # LSTM for the second argument
         self.lstm2 = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+        self.dropout1 = nn.Dropout(0.2)
         # Merge and classify
         self.fc1 = nn.Linear(hidden_dim * 2, 256)  # Doubled because we concatenate
         self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(256, 64)  # Doubled because we concatenate
-        self.relu = nn.ReLU()
-        self.fc3 = nn.Linear(64, num_classes)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, num_classes)
 
     def init_weights(self):
         # 初始化LSTM权重
@@ -120,14 +120,17 @@ class DualLSTM_MLP(nn.Module):
 
         # Concatenate outputs
         out = torch.cat((out1, out2), dim=1)
+        out = self.dropout1(out)
 
         # MLP
         out = self.fc1(out)
         out = self.relu(out)
+        out = self.dropout1(out)
         out = self.fc2(out)
         out = self.relu(out)
         out = self.fc3(out)
         return out
+
 
 
 def train(train_label_tensor, train_tensor, test_tensor):
@@ -143,7 +146,7 @@ def train(train_label_tensor, train_tensor, test_tensor):
     # LSTM 参数
     input_dim = 300  # GloVe 向量维度
     hidden_dim = 128  # LSTM 隐藏层维度
-    num_layers = 4  # LSTM 层数
+    num_layers = 3  # LSTM 层数
 
     # 创建模型实例
     model = DualLSTM_MLP(input_dim, hidden_dim, num_layers, 4)
@@ -151,13 +154,13 @@ def train(train_label_tensor, train_tensor, test_tensor):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.00005, weight_decay=0.001)  # weight_decay参数是L2正则化项
+    optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=0.0005)  # weight_decay参数是L2正则化项
     model.to(device)
 
     # 运行训练和验证
-    for epoch in range(300):
-        train_loss, train_acc, train_f1 = train_epoch(train_loader, model, criterion, optimizer, device)
-        val_loss, val_acc, val_f1 = validate_epoch(val_loader, model, criterion, device)
+    for epoch in range(50):
+        train_loss, train_acc, train_f1 = LSTM_train_epoch(train_loader, model, criterion, optimizer, device)
+        val_loss, val_acc, val_f1 = LSTM_validate_epoch(val_loader, model, criterion, device)
         print(
             f'Epoch {epoch + 1}: Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}, Train F1: {train_f1:.4f}, Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}, Val F1: {val_f1:.4f}')
     # 计算测试集预测结果并保存
